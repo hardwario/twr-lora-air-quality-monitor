@@ -142,6 +142,7 @@ void application_init(void)
     bc_module_lcd_set_event_handler(lcd_event_handler, NULL);
 
     bc_module_battery_init();
+
     bc_module_battery_set_event_handler(battery_event_handler, NULL);
     bc_module_battery_set_update_interval(BATTERY_UPDATE_INTERVAL);
 
@@ -457,6 +458,8 @@ void battery_event_handler(bc_module_battery_event_t event, void *event_param)
 
     float voltage;
     int percentage;
+
+    bc_module_battery_measure();
 
     if (bc_module_battery_get_voltage(&voltage))
     {
