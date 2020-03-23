@@ -1,6 +1,6 @@
 #include <application.h>
 
-#define BATTERY_UPDATE_INTERVAL (1000)
+#define BATTERY_UPDATE_INTERVAL (60 * 60 * 1000)
 
 #define TMP112_PUB_NO_CHANGE_INTERVAL (15 * 60 * 1000)
 #define TMP112_PUB_VALUE_CHANGE 0.2f
