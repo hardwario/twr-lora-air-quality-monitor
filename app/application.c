@@ -1,6 +1,6 @@
 #include <application.h>
 
-#define BATTERY_UPDATE_INTERVAL (60 * 60 * 1000)
+#define BATTERY_UPDATE_INTERVAL (1000)
 
 #define TMP112_PUB_NO_CHANGE_INTERVAL (15 * 60 * 1000)
 #define TMP112_PUB_VALUE_CHANGE 0.2f
@@ -88,6 +88,9 @@ void co2_event_handler(bc_module_co2_event_t event, void *event_param);
 
 void application_init(void)
 {
+
+    bc_log_init(BC_LOG_LEVEL_DUMP, BC_LOG_TIMESTAMP_ABS);
+
     bc_led_init(&led, BC_GPIO_LED, false, false);
     bc_led_set_mode(&led, BC_LED_MODE_OFF);
 
@@ -142,7 +145,6 @@ void application_init(void)
     bc_module_lcd_set_event_handler(lcd_event_handler, NULL);
 
     bc_module_battery_init();
-
     bc_module_battery_set_event_handler(battery_event_handler, NULL);
     bc_module_battery_set_update_interval(BATTERY_UPDATE_INTERVAL);
 
@@ -448,16 +450,18 @@ void battery_event_handler(bc_module_battery_event_t event, void *event_param)
     float voltage;
     int percentage;
 
-    bc_module_battery_measure();
-
-    if (bc_module_battery_get_voltage(&voltage))
+    if(event == BC_MODULE_BATTERY_EVENT_UPDATE)
     {
-        values.battery_voltage = voltage;
-        bc_radio_pub_battery(&voltage);
-    }
+        if (bc_module_battery_get_voltage(&voltage))
+        {
 
-    if (bc_module_battery_get_charge_level(&percentage))
-    {
-        values.battery_pct = percentage;
+            values.battery_voltage = voltage;
+            bc_radio_pub_battery(&voltage);
+        }
+
+        if (bc_module_battery_get_charge_level(&percentage))
+        {
+            values.battery_pct = percentage;
+        }
     }
 }
