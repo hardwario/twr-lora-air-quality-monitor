@@ -352,12 +352,12 @@ void tmp112_event_handler(bc_tmp112_t *self, bc_tmp112_event_t event, void *even
     float value;
     event_param_t *param = (event_param_t *)event_param;
 
-    if (event != BC_TAG_TEMPERATURE_EVENT_UPDATE)
+    if (event != BC_TMP112_EVENT_UPDATE)
     {
         return;
     }
 
-    if (bc_tag_temperature_get_temperature_celsius(self, &value))
+    if (bc_tmp112_get_temperature_celsius(self, &value))
     {
         if ((fabs(value - param->value) >= TMP112_PUB_VALUE_CHANGE) || (param->next_pub < bc_scheduler_get_spin_tick()))
         {
