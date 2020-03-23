@@ -208,17 +208,6 @@ static void lcd_page_render()
     bc_system_pll_disable();
 }
 
-static void temperature_tag_init(bc_i2c_channel_t i2c_channel, bc_tag_temperature_i2c_address_t i2c_address, temperature_tag_t *tag)
-{
-    memset(tag, 0, sizeof(*tag));
-
-    tag->param.channel = i2c_address == BC_TAG_TEMPERATURE_I2C_ADDRESS_DEFAULT ? BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_DEFAULT: BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_ALTERNATE;
-
-    bc_tag_temperature_init(&tag->self, i2c_channel, i2c_address);
-
-    bc_tag_temperature_set_update_interval(&tag->self, TMP112_UPDATE_INTERVAL);
-}
-
 static void humidity_tag_init(bc_tag_humidity_revision_t revision, bc_i2c_channel_t i2c_channel, humidity_tag_t *tag)
 {
     memset(tag, 0, sizeof(*tag));
