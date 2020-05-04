@@ -140,6 +140,15 @@ void application_init(void)
 
     //----------------------------
 
+    static bc_tag_voc_lp_t voc_lp;
+    static event_param_t voc_lp_event_param = { .next_pub = 0 };
+
+    bc_tag_voc_lp_init(&voc_lp, BC_I2C_I2C0);
+    bc_tag_voc_lp_set_event_handler(&voc_lp, voc_lp_tag_event_handler, &voc_lp_event_param);
+    bc_tag_voc_lp_set_update_interval(&voc_lp, VOC_LP_TAG_UPDATE_INTERVAL);
+
+    //----------------------------
+
     memset(&values, 0xff, sizeof(values));
     bc_module_lcd_init();
     bc_module_lcd_set_event_handler(lcd_event_handler, NULL);
