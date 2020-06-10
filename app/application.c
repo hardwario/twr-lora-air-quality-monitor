@@ -67,6 +67,8 @@ static const struct
 static int page_index = 0;
 static int menu_item = 0;
 
+bc_led_t led_lcd_green;
+
 static struct
 {
     bc_tick_t next_update;
@@ -148,6 +150,9 @@ void application_init(void)
     memset(&values, 0xff, sizeof(values));
     bc_module_lcd_init();
     bc_module_lcd_set_event_handler(lcd_event_handler, NULL);
+    bc_module_lcd_set_button_hold_time(1000);
+    const bc_led_driver_t* driver = bc_module_lcd_get_led_driver();
+    bc_led_init_virtual(&led_lcd_green, 1, driver, 1);
 
     // Battery
     bc_module_battery_init();
@@ -270,7 +275,7 @@ void lcd_event_handler(bc_module_lcd_event_t event, void *event_param)
     {
         if ((page_index != PAGE_INDEX_MENU))
         {
-            // Key prew page
+            // Key previous page
             page_index--;
             if (page_index < 0)
             {
@@ -290,7 +295,7 @@ void lcd_event_handler(bc_module_lcd_event_t event, void *event_param)
 
         static uint16_t left_event_count = 0;
         left_event_count++;
-        bc_radio_pub_event_count(BC_RADIO_PUB_EVENT_LCD_BUTTON_LEFT, &left_event_count);
+        //bc_radio_pub_event_count(BC_RADIO_PUB_EVENT_LCD_BUTTON_LEFT, &left_event_count);
     }
     else if(event == BC_MODULE_LCD_EVENT_RIGHT_CLICK)
     {
@@ -310,25 +315,32 @@ void lcd_event_handler(bc_module_lcd_event_t event, void *event_param)
 
         static uint16_t right_event_count = 0;
         right_event_count++;
-        bc_radio_pub_event_count(BC_RADIO_PUB_EVENT_LCD_BUTTON_RIGHT, &right_event_count);
+        //bc_radio_pub_event_count(BC_RADIO_PUB_EVENT_LCD_BUTTON_RIGHT, &right_event_count);
     }
     else if(event == BC_MODULE_LCD_EVENT_LEFT_HOLD)
     {
         static int left_hold_event_count = 0;
         left_hold_event_count++;
         bc_radio_pub_int("push-button/lcd:left-hold/event-count", &left_hold_event_count);
+
+        bc_led_pulse(&led_lcd_green, 100);
     }
     else if(event == BC_MODULE_LCD_EVENT_RIGHT_HOLD)
     {
         static int right_hold_event_count = 0;
         right_hold_event_count++;
         bc_radio_pub_int("push-button/lcd:right-hold/event-count", &right_hold_event_count);
+
+        bc_led_pulse(&led_lcd_green, 100);
+
     }
     else if(event == BC_MODULE_LCD_EVENT_BOTH_HOLD)
     {
         static int both_hold_event_count = 0;
         both_hold_event_count++;
         bc_radio_pub_int("push-button/lcd:both-hold/event-count", &both_hold_event_count);
+
+        bc_led_pulse(&led_lcd_green, 100);
     }
 
     bc_scheduler_plan_now(0);
