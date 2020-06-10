@@ -98,15 +98,14 @@ void application_init(void)
 
     bc_radio_init(BC_RADIO_MODE_NODE_SLEEPING);
 
-    //----------------------------
-
+    // Temperature
     static bc_tmp112_t temperature;
+    static event_param_t temperature_event_param = { .next_pub = 0, .channel = BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_ALTERNATE };
     bc_tmp112_init(&temperature, BC_I2C_I2C0, 0x49);
-    bc_tmp112_set_event_handler(&temperature, tmp112_event_handler, NULL);
+    bc_tmp112_set_event_handler(&temperature, tmp112_event_handler, &temperature_event_param);
     bc_tmp112_set_update_interval(&temperature, TMP112_UPDATE_INTERVAL);
 
-    //----------------------------
-
+    // Hudmidity
     static humidity_tag_t humidity_tag_0_0;
     humidity_tag_init(BC_TAG_HUMIDITY_REVISION_R1, BC_I2C_I2C0, &humidity_tag_0_0);
 
@@ -125,36 +124,32 @@ void application_init(void)
     static humidity_tag_t humidity_tag_1_4;
     humidity_tag_init(BC_TAG_HUMIDITY_REVISION_R3, BC_I2C_I2C1, &humidity_tag_1_4);
 
-    //----------------------------
-
+    // Barometer
     static barometer_tag_t barometer_tag_0_0;
     barometer_tag_init(BC_I2C_I2C0, &barometer_tag_0_0);
 
     static barometer_tag_t barometer_tag_1_0;
     barometer_tag_init(BC_I2C_I2C1, &barometer_tag_1_0);
 
-    //----------------------------
-
+    // CO2
     static event_param_t co2_event_param = { .next_pub = 0 };
     bc_module_co2_init();
     bc_module_co2_set_update_interval(CO2_UPDATE_INTERVAL);
     bc_module_co2_set_event_handler(co2_event_handler, &co2_event_param);
 
-    //----------------------------
-
+    // VOC-LP
     static bc_tag_voc_lp_t voc_lp;
     static event_param_t voc_lp_event_param = { .next_pub = 0 };
-
     bc_tag_voc_lp_init(&voc_lp, BC_I2C_I2C0);
     bc_tag_voc_lp_set_event_handler(&voc_lp, voc_lp_tag_event_handler, &voc_lp_event_param);
     bc_tag_voc_lp_set_update_interval(&voc_lp, VOC_LP_TAG_UPDATE_INTERVAL);
 
-    //----------------------------
-
+    // LCD
     memset(&values, 0xff, sizeof(values));
     bc_module_lcd_init();
     bc_module_lcd_set_event_handler(lcd_event_handler, NULL);
 
+    // Battery
     bc_module_battery_init();
     bc_module_battery_set_event_handler(battery_event_handler, NULL);
     bc_module_battery_set_update_interval(BATTERY_UPDATE_INTERVAL);
@@ -316,6 +311,24 @@ void lcd_event_handler(bc_module_lcd_event_t event, void *event_param)
         static uint16_t right_event_count = 0;
         right_event_count++;
         bc_radio_pub_event_count(BC_RADIO_PUB_EVENT_LCD_BUTTON_RIGHT, &right_event_count);
+    }
+    else if(event == BC_MODULE_LCD_EVENT_LEFT_HOLD)
+    {
+        static int left_hold_event_count = 0;
+        left_hold_event_count++;
+        bc_radio_pub_int("push-button/lcd:left-hold/event-count", &left_hold_event_count);
+    }
+    else if(event == BC_MODULE_LCD_EVENT_RIGHT_HOLD)
+    {
+        static int right_hold_event_count = 0;
+        right_hold_event_count++;
+        bc_radio_pub_int("push-button/lcd:right-hold/event-count", &right_hold_event_count);
+    }
+    else if(event == BC_MODULE_LCD_EVENT_BOTH_HOLD)
+    {
+        static int both_hold_event_count = 0;
+        both_hold_event_count++;
+        bc_radio_pub_int("push-button/lcd:both-hold/event-count", &both_hold_event_count);
     }
 
     bc_scheduler_plan_now(0);
