@@ -2,7 +2,7 @@
 
 # Firmware Air Quality Tester
 
-[![Travis](https://img.shields.io/travis/bigclownprojects/bcf-radio-air-quality-monitor/master.svg)](https://travis-ci.org/bigclownprojects/bcf-radio-air-quality-monitor)
+[![Travis](https://travis-ci.org/hardwario/twr-radio-air-quality-monitor.svg?branch=master)](https://travis-ci.org/hardwario/twr-radio-air-quality-monitor)
 [![Release](https://img.shields.io/github/release/bigclownprojects/bcf-radio-air-quality-monitor.svg)](https://github.com/bigclownprojects/bcf-radio-air-quality-monitor/releases)
 [![License](https://img.shields.io/github/license/bigclownprojects/bcf-radio-air-quality-monitor.svg)](https://github.com/bigclownprojects/bcf-radio-air-quality-monitor/blob/master/LICENSE)
 [![Twitter](https://img.shields.io/twitter/follow/hardwario_en.svg?style=social&label=Follow)](https://twitter.com/hardwario_en)
@@ -13,7 +13,7 @@ If you want to get more information about Core Module, firmware and how to work 
 
 **https://developers.hardwario.com/firmware/basic-overview/**
 
-User's application code (business logic) goes into `app/application.c`.
+User's application code (business logic) goes into `src/application.c`.
 
 ## License
 
