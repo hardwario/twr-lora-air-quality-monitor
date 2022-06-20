@@ -1,11 +1,13 @@
 #include <application.h>
 
+#define SEND_DATA_INTERVAL (15 * 60 * 1000)
+
 #define BATTERY_UPDATE_INTERVAL (60 * 60 * 1000)
-#define TMP112_UPDATE_INTERVAL (2 * 1000)
-#define VOC_LP_TAG_UPDATE_INTERVAL (5 * 1000)
-#define HUMIDITY_TAG_UPDATE_INTERVAL (2 * 1000)
-#define BAROMETER_TAG_UPDATE_INTERVAL (1 * 60 * 1000)
-#define CO2_UPDATE_INTERVAL (1 * 60 * 1000)
+#define TMP112_UPDATE_INTERVAL (2 * 60 * 1000)
+#define HUMIDITY_TAG_UPDATE_INTERVAL (2 * 60 * 1000)
+#define BAROMETER_TAG_UPDATE_INTERVAL (2 * 60 * 1000)
+#define VOC_LP_TAG_UPDATE_INTERVAL (5 * 60 * 1000)
+#define CO2_UPDATE_INTERVAL (5 * 60 * 1000)
 
 #define MAX_PAGE_INDEX 3
 #define PAGE_INDEX_MENU -1
@@ -14,11 +16,21 @@
 #define CALIBRATION_MEASURE_INTERVAL (1 * 60 * 1000)
 #define CALIBRATION_COUNTER 15
 
+#define LORA_START_DELAY (10 * 1000)
+
 /*
 #define CALIBRATION_START_DELAY (5 * 1000)
 #define CALIBRATION_MEASURE_INTERVAL (5 * 1000)
 #define CALIBRATION_COUNTER 10
 */
+
+enum {
+    HEADER_BOOT         = 0x00,
+    HEADER_UPDATE       = 0x01,
+    HEADER_BUTTON_CLICK = 0x02,
+    HEADER_BUTTON_HOLD  = 0x03,
+
+} header = HEADER_BOOT;
 
 twr_led_t led;
 bool led_state = false;
@@ -90,13 +102,15 @@ void voc_lp_tag_event_handler(twr_tag_voc_lp_t *self, twr_tag_voc_lp_event_t eve
 
 bool at_send(void);
 bool at_status(void);
-
 bool at_calibration(void);
 
-twr_scheduler_task_id_t calibration_task_id = 0;
-int calibration_counter;
-
 void calibration_task(void *param);
+void lora_task(void *param);
+
+twr_scheduler_task_id_t calibration_task_id = 0;
+twr_scheduler_task_id_t lora_task_id = 0;
+
+int calibration_counter;
 
 static void lcd_page_render()
 {
@@ -235,22 +249,21 @@ void lcd_event_handler(twr_module_lcd_event_t event, void *event_param)
     {
         twr_cmwx1zzabz_join(&lora);
 
-        twr_led_pulse(&lcd_led_g, 100);
+        twr_led_pulse(&lcd_led_g, 1000);
     }
     else if(event == TWR_MODULE_LCD_EVENT_RIGHT_HOLD)
     {
         at_calibration();
 
-        twr_led_pulse(&lcd_led_g, 100);
+        twr_led_pulse(&lcd_led_g, 1000);
 
     }
     else if(event == TWR_MODULE_LCD_EVENT_BOTH_HOLD)
     {
-        static int both_hold_event_count = 0;
-        both_hold_event_count++;
-        //twr_radio_pub_int("push-button/lcd:both-hold/event-count", &both_hold_event_count);
+        header = HEADER_BUTTON_HOLD;
+        twr_scheduler_plan_now(lora_task_id);
 
-        twr_led_pulse(&lcd_led_g, 100);
+        twr_led_pulse(&lcd_led_g, 1000);
     }
 
     twr_scheduler_plan_now(0);
@@ -466,38 +479,7 @@ bool at_status(void)
 
 bool at_send(void)
 {
-    static uint8_t buffer[230];
-    // temp, acc, GPS data
-    uint8_t len = 0;
-
-    int16_t temp = (int16_t)(values.temperature * 10.0f);
-    buffer[len++] = temp;
-    buffer[len++] = temp >> 8;
-
-    int16_t voltage = (int16_t)(values.battery_voltage * 10.0f);
-    buffer[len++] = voltage;
-    buffer[len++] = voltage >> 8;
-
-    int lat = 0;
-    buffer[len++] = lat;
-    buffer[len++] = lat >> 8;
-    buffer[len++] = lat >> 16;
-    buffer[len++] = lat >> 24;
-
-    int lon = 0;
-    buffer[len++] = lon;
-    buffer[len++] = lon >> 8;
-    buffer[len++] = lon >> 16;
-    buffer[len++] = lon >> 24;
-
-    int alt = 0;
-    buffer[len++] = alt;
-    buffer[len++] = alt >> 8;
-
-    uint8_t satellites = 0;
-    buffer[len++] = satellites;
-
-    twr_cmwx1zzabz_send_message_confirmed(&lora, buffer, len);
+    twr_scheduler_plan_now(lora_task_id);
 
     return true;
 }
@@ -522,7 +504,7 @@ void lora_callback(twr_cmwx1zzabz_t *self, twr_cmwx1zzabz_event_t event, void *e
     }
     else if (event == TWR_CMWX1ZZABZ_EVENT_MESSAGE_CONFIRMED)
     {
-        twr_led_pulse(&lcd_led_g, 2000);
+        twr_led_pulse(&lcd_led_g, 500);
     }
     else if (event == TWR_CMWX1ZZABZ_EVENT_MESSAGE_NOT_CONFIRMED)
     {
@@ -623,6 +605,8 @@ void application_init(void)
     };
     twr_atci_init(commands, TWR_ATCI_COMMANDS_LENGTH(commands));
 
+    lora_task_id = twr_scheduler_register(lora_task, NULL, twr_tick_get() + LORA_START_DELAY);
+
     twr_led_pulse(&led, 2000);
 }
 
@@ -643,4 +627,75 @@ void application_task(void)
     }
 
     twr_module_lcd_update();
+}
+
+void lora_task(void *param)
+{
+    (void)param;
+
+    if (!twr_cmwx1zzabz_is_ready(&lora))
+    {
+        twr_scheduler_plan_current_relative(100);
+
+        return;
+    }
+
+    static uint8_t buffer[11];
+
+    memset(buffer, 0xff, sizeof(buffer));
+
+    buffer[0] = header;
+
+    if (!isnan(values.battery_voltage))
+    {
+        buffer[1] = ceil(values.battery_voltage * 10.f);
+    }
+
+    if (!isnan(values.temperature))
+    {
+        int16_t temperature_i16 = (int16_t) (values.temperature * 10.f);
+
+        buffer[2] = temperature_i16;
+        buffer[3] = temperature_i16 >> 8;
+    }
+
+    if (!isnan(values.humidity))
+    {
+        buffer[4] = values.humidity * 2;
+    }
+
+    if (!isnan(values.pressure))
+    {
+        uint16_t value = values.pressure / 2.f;
+        buffer[5] = value;
+        buffer[6] = value >> 8;
+    }
+
+    if (!isnan(values.tvoc))
+    {
+        uint16_t value = values.tvoc;
+        buffer[7] = value;
+        buffer[8] = value >> 8;
+    }
+
+    if (!isnan(values.co2_concentation))
+    {
+        uint16_t value = values.co2_concentation;
+        buffer[9] = value;
+        buffer[10] = value >> 8;
+    }
+
+    twr_cmwx1zzabz_send_message_confirmed(&lora, buffer, sizeof(buffer));
+
+    static char tmp[sizeof(buffer) * 2 + 1];
+    for (size_t i = 0; i < sizeof(buffer); i++)
+    {
+        sprintf(tmp + i * 2, "%02x", buffer[i]);
+    }
+
+    twr_atci_printf("$SEND: %s", tmp);
+
+    header = HEADER_UPDATE;
+
+    twr_scheduler_plan_current_relative(SEND_DATA_INTERVAL);
 }
