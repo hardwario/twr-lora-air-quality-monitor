@@ -4,8 +4,8 @@ VERSION ?= vdev
 CFLAGS += -D'VERSION="${VERSION}"'
 
 # Increase task buffer, we use lot of sensors and versions in this project
-CFLAGS += -D'BC_SCHEDULER_MAX_TASKS=42'
-CFLAGS += -D'TWR_SCHEDULER_MAX_TASKS=42'
+CFLAGS += -D'BC_SCHEDULER_MAX_TASKS=50'
+CFLAGS += -D'TWR_SCHEDULER_MAX_TASKS=50'
 
 
 -include sdk/Makefile.mk
