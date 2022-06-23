@@ -496,7 +496,7 @@ void lora_callback(twr_cmwx1zzabz_t *self, twr_cmwx1zzabz_event_t event, void *e
     }
     else if (event == TWR_CMWX1ZZABZ_EVENT_SEND_MESSAGE_START)
     {
-        twr_led_pulse(&led, 500);
+        //twr_led_pulse(&led, 100);
     }
     else if (event == TWR_CMWX1ZZABZ_EVENT_SEND_MESSAGE_DONE)
     {
@@ -504,7 +504,7 @@ void lora_callback(twr_cmwx1zzabz_t *self, twr_cmwx1zzabz_event_t event, void *e
     }
     else if (event == TWR_CMWX1ZZABZ_EVENT_MESSAGE_CONFIRMED)
     {
-        twr_led_pulse(&lcd_led_g, 500);
+        twr_led_pulse(&lcd_led_g, 100);
     }
     else if (event == TWR_CMWX1ZZABZ_EVENT_MESSAGE_NOT_CONFIRMED)
     {
